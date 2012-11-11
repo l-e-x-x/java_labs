@@ -23,6 +23,18 @@ public class SortedSetElement <T extends Comparable>  {
 		this.rightElement_ = rightElement;
 	}
 	
+	public void setParentElement_(SortedSetElement<T> parentElement_) {
+		this.parentElement_ = parentElement_;
+	}
+	
+	public void setValue_(T value_) {
+		this.value_ = value_;
+	}
+	
+	public void setEqualElements_(Vector<T> equalElements_) {
+		this.equalElements_ = equalElements_;
+	}
+	
 	public SortedSetElement<T> getLeftElement_() {
 		return leftElement_;
 	}
@@ -39,6 +51,10 @@ public class SortedSetElement <T extends Comparable>  {
 		return value_;
 	}
 
+	public Vector<T> getEqualElements_() {
+		return equalElements_;
+	}
+	
 	public int compareWithParam(T param) {
 		return value_.compareTo(param);
 	}
@@ -50,17 +66,28 @@ public class SortedSetElement <T extends Comparable>  {
 	
 	public T getFromEqualsList(int fromIndex)
 	{
-		if ((this.equalElements_.size() == 0)||(fromIndex > this.equalElements_.size()-1))
+		if ((this.equalElements_.isEmpty())||(fromIndex > this.equalElements_.size()-1))
 			return null; // если список пуст или мы хотим забрать элемент вне списка
 		return this.equalElements_.elementAt(fromIndex);
 	}
 	
-	void removeElement(SortedSetElement<T> prevElement, SortedSetElement<T> nextElement)
+	public boolean delLastFromEqualsList()
 	{
-		if (prevElement.getLeftElement_() == this)
-			prevElement.setLeftElement_(nextElement);
+		if (this.equalElements_.isEmpty())
+			return false; // если элементов нет
+		this.equalElements_.removeElementAt(this.equalElements_.size()-1); // удаляем последний
+		return true; // ok
+	}
+	
+	void giveElementToParent(SortedSetElement<T> newElement)
+	{
+			// передаем родителю новый элемент заместо старого
+		if (this.parentElement_.getLeftElement_() == this)
+			this.parentElement_.setLeftElement_(newElement); 
 		else
-			prevElement.setRightElement_(nextElement);
+			this.parentElement_.setRightElement_(newElement);
+		if (newElement != null) // если новый элемент не фиктивный
+			newElement.setParentElement_(this.parentElement_); // устанавливаем для него нового родителя
 	}
 	
 }

@@ -12,7 +12,7 @@ public interface ISortedSet {
   /**
    * Удалить элемент из дерева
    */
-  boolean remove(Comparable o);
+  boolean remove(Comparable<?> o);
   /**
    * Возвращает true, если элемент содержится в дереве
    */

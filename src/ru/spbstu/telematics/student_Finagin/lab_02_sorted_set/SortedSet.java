@@ -140,9 +140,42 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 	}
 
 	@Override
-	public boolean remove(Comparable o) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean remove(Comparable<?> o) {
+		SortedSetElement<T> removingElement=this.findElementByVal((T)o);
+		if (removingElement == null)
+			return false; // если элемент не найден
+		if (removingElement.delLastFromEqualsList()) // пробуем удалить последний из списка схожих
+			return true; // если в списке схожих элементов был хотя бы один - оk
+		
+		SortedSetElement<T> rightOfRemovingElement=removingElement.getRightElement_();
+		if (rightOfRemovingElement == null)
+		{	// если у текущего элемента нет правого поддерева 
+			if (rootElement_ == removingElement)
+				rootElement_=removingElement.getLeftElement_(); // просто изменяем корень (если удаляется корень)
+			else // или все левое поддерево отдаем родителю удаляемого
+				removingElement.giveElementToParent(removingElement.getLeftElement_());			
+			return true;
+		}
+		
+		SortedSetElement<T> leftOfRightOfRemovingElem=rightOfRemovingElement.getLeftElement_();
+		if (leftOfRightOfRemovingElem == null)
+		{	// если у правого (от удаляемого) нет левого поддерева
+				// все левое поддерево отдаем правому от удаляемого
+			rightOfRemovingElement.setLeftElement_(removingElement.getLeftElement_());
+			if (rootElement_ == removingElement)
+				rootElement_=rightOfRemovingElement; // просто изменяем корень (если удаляется корень)
+			else // или отдаем правый элемент родителю удаляемого
+				removingElement.giveElementToParent(rightOfRemovingElement);			
+			return true;
+		}
+		
+		while(leftOfRightOfRemovingElem.getLeftElement_() != null)
+			leftOfRightOfRemovingElem=leftOfRightOfRemovingElem.getLeftElement_(); // находим наименьший элемент в поддереве правого
+		leftOfRightOfRemovingElem.giveElementToParent(leftOfRightOfRemovingElem.getRightElement_()); // отдаем его правое поддерево родителю
+			// заменяем текущий удаляемый на наименьший в поддереве правого (вместе со схожими) 
+		removingElement.setValue_(leftOfRightOfRemovingElem.getValue_());
+		removingElement.setEqualElements_(leftOfRightOfRemovingElem.getEqualElements_());
+		return true;
 	}
 
 	@Override

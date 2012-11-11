@@ -23,10 +23,13 @@ public class Main {
 		SortedSet<Integer>.SortedSetIterator iterator=sortedSet.iterator();
 		while (iterator.hasNext())
 			System.out.print(iterator.next() + " -> ");
-		if (sortedSet.contains(0))
-			System.out.println("\ncontains!");
-		else
-			System.out.println("\nnot in set");
+		System.out.println();
+		sortedSet.remove(4);
+		sortedSet.remove(10);
+		sortedSet.remove(4);
+		iterator=sortedSet.iterator();
+		while (iterator.hasNext())
+			System.out.print(iterator.next() + " -> ");
 	}
 
 }
