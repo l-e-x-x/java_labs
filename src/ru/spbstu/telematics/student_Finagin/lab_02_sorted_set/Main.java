@@ -16,20 +16,31 @@ public class Main {
 		sortedSet.add(5);
 		sortedSet.add(11);
 		sortedSet.add(4);
-		sortedSet.add(4);
+		//sortedSet.add(4);
 		sortedSet.add(1);
-		sortedSet.add(23);
-		sortedSet.add(-1);
+		//sortedSet.add(23);
+		//sortedSet.add(-1);
+		//sortedSet.add(4);
 		SortedSet<Integer>.SortedSetIterator iterator=sortedSet.iterator();
-		while (iterator.hasNext())
-			System.out.print(iterator.next() + " -> ");
-		System.out.println();
-		sortedSet.remove(4);
-		sortedSet.remove(10);
-		sortedSet.remove(4);
+		System.out.println("BEFORE");
 		iterator=sortedSet.iterator();
 		while (iterator.hasNext())
 			System.out.print(iterator.next() + " -> ");
+		System.out.println("\nREMOVING by ITERATOR");
+		
+		iterator=sortedSet.iterator();
+		while (iterator.hasNext())
+		{
+			System.out.println(iterator.next() + " -removing");
+			iterator.remove();
+		}
+		
+		System.out.println("\nAFTER");
+		iterator=sortedSet.iterator();
+		while (iterator.hasNext())
+			System.out.print(iterator.next() + " -> ");
+	
 	}
+	
 
 }

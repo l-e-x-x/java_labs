@@ -79,6 +79,14 @@ public class SortedSetElement <T extends Comparable>  {
 		return true; // ok
 	}
 	
+	public boolean delFromEqualsListByIndex(int index)
+	{
+		if ((index > this.equalElements_.size()-1)||(index < 0))
+			return false;
+		this.equalElements_.removeElementAt(index);
+		return true;
+	}
+	
 	void giveElementToParent(SortedSetElement<T> newElement)
 	{
 			// передаем родителю новый элемент заместо старого

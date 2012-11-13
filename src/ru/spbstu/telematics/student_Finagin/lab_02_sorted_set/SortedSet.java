@@ -1,5 +1,7 @@
 package ru.spbstu.telematics.student_Finagin.lab_02_sorted_set;
 
+import java.util.NoSuchElementException;
+
 /*Класс дерева сортировки (сортированное множество)*/
 
 public class SortedSet <T extends Comparable> implements ISortedSet {  
@@ -12,7 +14,7 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 		SortedSetElement<T> nextElement_; // следующий элемент (вычисляется методом next())
 		SortedSetElement<T> currentElement_; // текущий элемент (для метода remove())
 		
-		int equalElementIndex_=0; // индекс элемента в списке equals (равных элементов)  
+		int equalElementIndex_=-1; // индекс элемента в списке equals (равных элементов)  
 		
 		public SortedSetIterator() {
 			nextElement_=this.getMinLeaf(SortedSet.this.rootElement_);
@@ -43,22 +45,39 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 		
 			/* Интерфейс итератора */
 		@Override
-		
-		public T next() {
+		public T next() throws NoSuchElementException {
+			if (nextElement_ == null) // если все кончилось - кидаем исключение 
+				throw new NoSuchElementException();
+			if (currentElement_ != nextElement_)
+				equalElementIndex_=-1;
 			currentElement_=nextElement_;
-			T nextEqual=currentElement_.getFromEqualsList(this.equalElementIndex_);
-			if (nextEqual != null)
-			{	
-				this.equalElementIndex_++;
-				return nextEqual;
+			T nextEqual=currentElement_.getFromEqualsList(0);
+			if (nextEqual == null)
+			{	// если схожих элементов нет (список пуст) - вычисляем следующий по обходу дерева
+				if (currentElement_.getRightElement_() != null)
+					nextElement_=this.getMinLeaf(currentElement_.getRightElement_());
+				else
+					nextElement_=this.getRootOfContainingLeftSubtree(currentElement_);
+				System.out.print(" [no EQ elements] ");
+				return currentElement_.getValue_();
 			}
 			
-			this.equalElementIndex_=0;
-			if (currentElement_.getRightElement_() != null)
-				nextElement_=this.getMinLeaf(currentElement_.getRightElement_());
-			else
-				nextElement_=this.getRootOfContainingLeftSubtree(currentElement_);
-			return currentElement_.getValue_();
+			if (this.equalElementIndex_ == -1)
+			{	// если схожие элементы есть, но их не обходили еще - возвращаем текущее значение  
+				this.equalElementIndex_=0;
+				System.out.print(" [got EQ elements, but now current] ");
+				return currentElement_.getValue_();
+			}
+			nextEqual=currentElement_.getFromEqualsList(equalElementIndex_++); // берем текущее значение из списка схожих
+			if (currentElement_.getFromEqualsList(equalElementIndex_) == null)
+			{	// если список схожих обошли - вычисляем следующий по обходу дерева
+				if (currentElement_.getRightElement_() != null)
+					nextElement_=this.getMinLeaf(currentElement_.getRightElement_());
+				else
+					nextElement_=this.getRootOfContainingLeftSubtree(currentElement_);
+			}
+			System.out.print(" [from EQ element list] ");
+			return nextEqual;
 		}
 		
 		@Override
@@ -69,9 +88,26 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 		}
 		
 		@Override
-		public void remove() {
-			// TODO Auto-generated method stub
-			
+		public void remove() throws IllegalStateException {
+			if (currentElement_ == null) // если пытаемся удалить несуществующий элемент
+				throw new IllegalStateException();
+			switch (this.equalElementIndex_)
+			{
+			case -1: // если у элемента не было списка схожих элементов
+				SortedSet.this.removeByElement(currentElement_);
+				currentElement_=null;
+				break; 
+			case 0:
+				T newValue=currentElement_.getFromEqualsList(0);
+				currentElement_.setValue_(newValue);
+				currentElement_.delFromEqualsListByIndex(0);
+				this.equalElementIndex_--;
+				break;
+			default:
+				currentElement_.delFromEqualsListByIndex(this.equalElementIndex_-1);
+				this.equalElementIndex_--;
+				break;
+			}
 		}
 	}
 
@@ -93,16 +129,51 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 		return null; // если ничего не найдено
 	}
 
+	boolean removeByElement(SortedSetElement<T> removingElement)
+	{	// удаление указанного элемента (параметр)
+		SortedSetElement<T> rightOfRemovingElement=removingElement.getRightElement_();
+		if (rightOfRemovingElement == null)
+		{	// если у текущего элемента нет правого поддерева 
+			if (rootElement_ == removingElement)
+				rootElement_=removingElement.getLeftElement_(); // просто изменяем корень (если удаляется корень)
+			else // или все левое поддерево отдаем родителю удаляемого
+				removingElement.giveElementToParent(removingElement.getLeftElement_());			
+			return true;
+		}
+		
+		SortedSetElement<T> leftOfRightOfRemovingElem=rightOfRemovingElement.getLeftElement_();
+		if (leftOfRightOfRemovingElem == null)
+		{	// если у правого (от удаляемого) нет левого поддерева
+				// все левое поддерево отдаем правому от удаляемого
+			rightOfRemovingElement.setLeftElement_(removingElement.getLeftElement_());
+			if (rootElement_ == removingElement)
+				rootElement_=rightOfRemovingElement; // просто изменяем корень (если удаляется корень)
+			else // или отдаем правый элемент родителю удаляемого
+				removingElement.giveElementToParent(rightOfRemovingElement);			
+			return true;
+		}
+		
+		while(leftOfRightOfRemovingElem.getLeftElement_() != null)
+			leftOfRightOfRemovingElem=leftOfRightOfRemovingElem.getLeftElement_(); // находим наименьший элемент в поддереве правого
+		leftOfRightOfRemovingElem.giveElementToParent(leftOfRightOfRemovingElem.getRightElement_()); // отдаем его правое поддерево родителю
+			// заменяем текущий удаляемый на наименьший в поддереве правого (вместе со схожими) 
+		removingElement.setValue_(leftOfRightOfRemovingElem.getValue_());
+		removingElement.setEqualElements_(leftOfRightOfRemovingElem.getEqualElements_());
+		return true;
+	}
+	
 	 /* Интерфейс сортированного множества*/
 	@Override
 	public void add(Comparable<?> e) {
 		if (rootElement_== null) // если корня нет
+		{
 			rootElement_=new SortedSetElement <T> ((T) e,null); // создаем корень
+			System.out.println("Added " + e + " as a root");
+		}
 		else
 		{	// если корень есть
 			SortedSetElement <T> thisElement=rootElement_,
 								 prevElement=null; 
-			
 			int compareResult;
 			do
 			{	// выполняем обход
@@ -146,36 +217,7 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 			return false; // если элемент не найден
 		if (removingElement.delLastFromEqualsList()) // пробуем удалить последний из списка схожих
 			return true; // если в списке схожих элементов был хотя бы один - оk
-		
-		SortedSetElement<T> rightOfRemovingElement=removingElement.getRightElement_();
-		if (rightOfRemovingElement == null)
-		{	// если у текущего элемента нет правого поддерева 
-			if (rootElement_ == removingElement)
-				rootElement_=removingElement.getLeftElement_(); // просто изменяем корень (если удаляется корень)
-			else // или все левое поддерево отдаем родителю удаляемого
-				removingElement.giveElementToParent(removingElement.getLeftElement_());			
-			return true;
-		}
-		
-		SortedSetElement<T> leftOfRightOfRemovingElem=rightOfRemovingElement.getLeftElement_();
-		if (leftOfRightOfRemovingElem == null)
-		{	// если у правого (от удаляемого) нет левого поддерева
-				// все левое поддерево отдаем правому от удаляемого
-			rightOfRemovingElement.setLeftElement_(removingElement.getLeftElement_());
-			if (rootElement_ == removingElement)
-				rootElement_=rightOfRemovingElement; // просто изменяем корень (если удаляется корень)
-			else // или отдаем правый элемент родителю удаляемого
-				removingElement.giveElementToParent(rightOfRemovingElement);			
-			return true;
-		}
-		
-		while(leftOfRightOfRemovingElem.getLeftElement_() != null)
-			leftOfRightOfRemovingElem=leftOfRightOfRemovingElem.getLeftElement_(); // находим наименьший элемент в поддереве правого
-		leftOfRightOfRemovingElem.giveElementToParent(leftOfRightOfRemovingElem.getRightElement_()); // отдаем его правое поддерево родителю
-			// заменяем текущий удаляемый на наименьший в поддереве правого (вместе со схожими) 
-		removingElement.setValue_(leftOfRightOfRemovingElem.getValue_());
-		removingElement.setEqualElements_(leftOfRightOfRemovingElem.getEqualElements_());
-		return true;
+		return this.removeByElement(removingElement); // или удаляем найденный элемент
 	}
 
 	@Override
