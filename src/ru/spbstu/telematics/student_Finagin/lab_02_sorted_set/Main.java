@@ -1,46 +1,55 @@
 package ru.spbstu.telematics.student_Finagin.lab_02_sorted_set;
-import java.util.Vector;
+import java.util.Scanner;
 
 public class Main {
-
-	/**
-	 * @param args
-	 */
-	
-	public static void main(String[] args) {
-		SortedSet<Integer> sortedSet =new SortedSet<Integer>();
-		sortedSet.add(10);
-		sortedSet.add(23);
-		sortedSet.add(-1);
-		sortedSet.add(2);
-		sortedSet.add(5);
-		sortedSet.add(11);
-		sortedSet.add(4);
-		//sortedSet.add(4);
-		sortedSet.add(1);
-		//sortedSet.add(23);
-		//sortedSet.add(-1);
-		//sortedSet.add(4);
-		SortedSet<Integer>.SortedSetIterator iterator=sortedSet.iterator();
-		System.out.println("BEFORE");
-		iterator=sortedSet.iterator();
-		while (iterator.hasNext())
-			System.out.print(iterator.next() + " -> ");
-		System.out.println("\nREMOVING by ITERATOR");
-		
-		iterator=sortedSet.iterator();
-		while (iterator.hasNext())
-		{
-			System.out.println(iterator.next() + " -removing");
-			iterator.remove();
-		}
-		
-		System.out.println("\nAFTER");
-		iterator=sortedSet.iterator();
-		while (iterator.hasNext())
-			System.out.print(iterator.next() + " -> ");
-	
+	static Scanner scanner_=new Scanner(System.in);
+	static boolean operatingFlag_=true;
+	static SortedSet<Integer> sortedSet_=new SortedSet<Integer>();
+	static void printOperationsList()
+	{
+		System.out.println("\n.:Operations List:.");
+		System.out.println("[add element] -- [1]");
+		System.out.println("[del element] -- [2]");
+		System.out.println("[find element] - [3]");
+		System.out.println("[foreach test] - [4]");
+		System.out.println("[quit] --------- [0]");
+		System.out.println("    - - -");
 	}
 	
-
+	public static void main(String[] args)
+	{
+		while (operatingFlag_)
+		{
+			printOperationsList();
+			System.out.print("Enter opcode: ");
+			switch (scanner_.nextInt())
+			{
+			case 1:
+				System.out.print("Enter element to add: ");
+				sortedSet_.add(scanner_.nextInt());
+				break;
+			case 2:
+				System.out.print("Enter element to del: ");
+				sortedSet_.remove(scanner_.nextInt());
+				break;
+			case 3:
+				System.out.print("Enter element to search for: "); 
+				if (sortedSet_.contains(scanner_.nextInt()))
+					System.out.println("Success! Element found!");
+				else
+					System.out.println("Failed! Element not found!");
+				break;
+			case 4:
+				System.out.print("[begin] -> ");
+				for (Integer elem : sortedSet_) {
+					System.out.print(elem.toString() + " -> ");
+				}
+				System.out.println("[end]");
+				break;
+			case 0:
+				operatingFlag_=false;
+				break;
+			}
+		}
+	}
 }

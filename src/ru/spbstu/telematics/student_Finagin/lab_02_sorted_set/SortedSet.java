@@ -1,15 +1,16 @@
 package ru.spbstu.telematics.student_Finagin.lab_02_sorted_set;
 
+import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /*Класс дерева сортировки (сортированное множество)*/
 
-public class SortedSet <T extends Comparable> implements ISortedSet {  
+public class SortedSet <T extends Comparable <T>> implements ISortedSet <T>, Iterable <T> {  
 
 	SortedSetElement <T> rootElement_; // корень дерева сортировки
 	
 		/* Класс итератора */
-	public class SortedSetIterator implements ISortedSetIterator <Comparable>{
+	public class SortedSetIterator implements Iterator <T>{
 		
 		SortedSetElement<T> nextElement_; // следующий элемент (вычисляется методом next())
 		SortedSetElement<T> currentElement_; // текущий элемент (для метода remove())
@@ -20,15 +21,17 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 			nextElement_=this.getMinLeaf(SortedSet.this.rootElement_);
 		}
 		
-		SortedSetElement<T> getMinLeaf(SortedSetElement<T> rootSubTreeElement)
+		private SortedSetElement<T> getMinLeaf(SortedSetElement<T> rootSubTreeElement)
 		{	// возвращает min из левого поддерева или корень поддерева (параметр)
+			if (rootSubTreeElement == null)
+				return null; // если корень поддерева пуст - возвращаем ошибко 
 			SortedSetElement<T> resultElement=rootSubTreeElement;
 			while (resultElement.getLeftElement_() != null)
 				resultElement=resultElement.getLeftElement_();
 			return resultElement;
 		}
 		
-		SortedSetElement<T> getRootOfContainingLeftSubtree (SortedSetElement<T> thisElement)
+		private SortedSetElement<T> getRootOfContainingLeftSubtree (SortedSetElement<T> thisElement)
 		{
 			SortedSetElement<T> resultElement=thisElement,
 								currentElement;
@@ -58,14 +61,14 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 					nextElement_=this.getMinLeaf(currentElement_.getRightElement_());
 				else
 					nextElement_=this.getRootOfContainingLeftSubtree(currentElement_);
-				System.out.print(" [no EQ elements] ");
+				//System.out.print(" [no EQ elements] ");
 				return currentElement_.getValue_();
 			}
 			
 			if (this.equalElementIndex_ == -1)
 			{	// если схожие элементы есть, но их не обходили еще - возвращаем текущее значение  
 				this.equalElementIndex_=0;
-				System.out.print(" [got EQ elements, but now current] ");
+				//System.out.print(" [got EQ elements, but now current] ");
 				return currentElement_.getValue_();
 			}
 			nextEqual=currentElement_.getFromEqualsList(equalElementIndex_++); // берем текущее значение из списка схожих
@@ -76,7 +79,7 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 				else
 					nextElement_=this.getRootOfContainingLeftSubtree(currentElement_);
 			}
-			System.out.print(" [from EQ element list] ");
+			//System.out.print(" [from EQ element list] ");
 			return nextEqual;
 		}
 		
@@ -88,10 +91,10 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 		}
 		
 		@Override
-		public void remove() throws IllegalStateException {
-			if (currentElement_ == null) // если пытаемся удалить несуществующий элемент
-				throw new IllegalStateException();
-			switch (this.equalElementIndex_)
+		public void remove() throws NoSuchMethodError {
+			//if (currentElement_ == null) // если пытаемся удалить несуществующий элемент
+				throw new NoSuchMethodError();
+			/*switch (this.equalElementIndex_)
 			{
 			case -1: // если у элемента не было списка схожих элементов
 				SortedSet.this.removeByElement(currentElement_);
@@ -107,13 +110,13 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 				currentElement_.delFromEqualsListByIndex(this.equalElementIndex_-1);
 				this.equalElementIndex_--;
 				break;
-			}
+			}*/
 		}
 	}
 
 	
-		/* ---Методы---*/
-	SortedSetElement <T> findElementByVal(T value)
+		/* ---Private Методы сортированного множества---*/
+	private SortedSetElement <T> findElementByVal(T value)
 	{	// возвращает инкапсулирующий элемент множества по значению, либо null, если не найден
 		SortedSetElement<T> searchResultElement=this.rootElement_;
 		while (searchResultElement != null)
@@ -129,13 +132,17 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 		return null; // если ничего не найдено
 	}
 
-	boolean removeByElement(SortedSetElement<T> removingElement)
+	private boolean removeByElement(SortedSetElement<T> removingElement)
 	{	// удаление указанного элемента (параметр)
 		SortedSetElement<T> rightOfRemovingElement=removingElement.getRightElement_();
 		if (rightOfRemovingElement == null)
 		{	// если у текущего элемента нет правого поддерева 
 			if (rootElement_ == removingElement)
+			{
 				rootElement_=removingElement.getLeftElement_(); // просто изменяем корень (если удаляется корень)
+				if (rootElement_ != null)
+					rootElement_.setParentElement_(null); // обнуляем родителя у корня
+			}
 			else // или все левое поддерево отдаем родителю удаляемого
 				removingElement.giveElementToParent(removingElement.getLeftElement_());			
 			return true;
@@ -144,10 +151,16 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 		SortedSetElement<T> leftOfRightOfRemovingElem=rightOfRemovingElement.getLeftElement_();
 		if (leftOfRightOfRemovingElem == null)
 		{	// если у правого (от удаляемого) нет левого поддерева
-				// все левое поддерево отдаем правому от удаляемого
-			rightOfRemovingElement.setLeftElement_(removingElement.getLeftElement_());
+			// все левое поддерево отдаем правому от удаляемого
+			SortedSetElement<T> leftOfRemovingElement=removingElement.getLeftElement_();
+			rightOfRemovingElement.setLeftElement_(leftOfRemovingElement); 
+			if (leftOfRemovingElement != null) // если левое поддерево не пусто
+				leftOfRemovingElement.setParentElement_(rightOfRemovingElement); // меняем родителя у левого поддерева
 			if (rootElement_ == removingElement)
+			{
 				rootElement_=rightOfRemovingElement; // просто изменяем корень (если удаляется корень)
+				rootElement_.setParentElement_(null); // обнуляем родителя у корня	
+			}
 			else // или отдаем правый элемент родителю удаляемого
 				removingElement.giveElementToParent(rightOfRemovingElement);			
 			return true;
@@ -164,11 +177,11 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 	
 	 /* Интерфейс сортированного множества*/
 	@Override
-	public void add(Comparable<?> e) {
+	public void add(Comparable<T> e) {
 		if (rootElement_== null) // если корня нет
 		{
 			rootElement_=new SortedSetElement <T> ((T) e,null); // создаем корень
-			System.out.println("Added " + e + " as a root");
+			System.out.println("Added " + e.toString() + " as a root");
 		}
 		else
 		{	// если корень есть
@@ -196,32 +209,46 @@ public class SortedSet <T extends Comparable> implements ISortedSet {
 			{
 			case 0: // если равно - добавляем к списку в узле с таким же значением
 				thisElement.addToEquals(e);
-				System.out.println("Added " + e + " to element <" + thisElement.getValue_() + "> eq list");
+				System.out.println("Added " + e.toString() + " to element <" + thisElement.getValue_().toString() + "> equals list");
 				break; 
 			case 1: // если в узле значение больше  - добавляем налево
 				prevElement.setLeftElement_(newElement);
-				System.out.println("Added " + e + " to the left of element <" + prevElement.getValue_() + ">");
+				System.out.println("Added " + e.toString() + " to the left of element <" + prevElement.getValue_().toString() + ">");
 				break;
 			case -1: // если в узле значение меньше  - добавляем направо
 				prevElement.setRightElement_(newElement);
-				System.out.println("Added " + e + " to the right of element <" + prevElement.getValue_() + ">");
+				System.out.println("Added " + e.toString() + " to the right of element <" + prevElement.getValue_().toString() + ">");
 				break;			
 			} // end switch
 		}	// end else (root != null)
 	}
 
 	@Override
-	public boolean remove(Comparable<?> o) {
+	public boolean remove(Comparable<T> o) {
 		SortedSetElement<T> removingElement=this.findElementByVal((T)o);
+		System.out.print("Trying to remove element <"+ o.toString() + ">...");
 		if (removingElement == null)
+		{
+			System.out.println(" Failed! Element not Found");
 			return false; // если элемент не найден
+		}
 		if (removingElement.delLastFromEqualsList()) // пробуем удалить последний из списка схожих
+		{
+			System.out.println(" Success! Removed last from equals list");
 			return true; // если в списке схожих элементов был хотя бы один - оk
-		return this.removeByElement(removingElement); // или удаляем найденный элемент
+		}
+		
+		if (this.removeByElement(removingElement)) // или удаляем найденный элемент
+		{
+			System.out.println(" Success!");
+			return true;
+		}
+		System.out.println(" Failed! Smth went wrong...");
+		return false;
 	}
 
 	@Override
-	public boolean contains(Comparable <?> o) {
+	public boolean contains(Comparable <T> o) {
 		if (this.findElementByVal((T) o) != null)
 			return true;
 		return false;

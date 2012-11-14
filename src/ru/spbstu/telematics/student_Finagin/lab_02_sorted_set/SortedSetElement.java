@@ -23,8 +23,8 @@ public class SortedSetElement <T extends Comparable>  {
 		this.rightElement_ = rightElement;
 	}
 	
-	public void setParentElement_(SortedSetElement<T> parentElement_) {
-		this.parentElement_ = parentElement_;
+	public void setParentElement_(SortedSetElement<T> parentElement) {
+		this.parentElement_ = parentElement;
 	}
 	
 	public void setValue_(T value_) {
@@ -87,7 +87,7 @@ public class SortedSetElement <T extends Comparable>  {
 		return true;
 	}
 	
-	void giveElementToParent(SortedSetElement<T> newElement)
+	public void giveElementToParent(SortedSetElement<T> newElement)
 	{
 			// передаем родителю новый элемент заместо старого
 		if (this.parentElement_.getLeftElement_() == this)
