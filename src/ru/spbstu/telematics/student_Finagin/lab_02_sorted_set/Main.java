@@ -4,7 +4,7 @@ import java.util.Scanner;
 public class Main {
 	static Scanner scanner_=new Scanner(System.in);
 	static boolean operatingFlag_=true;
-	static SortedSet<Integer> sortedSet_=new SortedSet<Integer>();
+	static SortedSet<String> sortedSet_=new SortedSet<String>();
 	static void printOperationsList()
 	{
 		System.out.println("\n.:Operations List:.");
@@ -26,22 +26,22 @@ public class Main {
 			{
 			case 1:
 				System.out.print("Enter element to add: ");
-				sortedSet_.add(scanner_.nextInt());
+				sortedSet_.add(scanner_.next());
 				break;
 			case 2:
 				System.out.print("Enter element to del: ");
-				sortedSet_.remove(scanner_.nextInt());
+				sortedSet_.remove(scanner_.next());
 				break;
 			case 3:
 				System.out.print("Enter element to search for: "); 
-				if (sortedSet_.contains(scanner_.nextInt()))
+				if (sortedSet_.contains(scanner_.next()))
 					System.out.println("Success! Element found!");
 				else
 					System.out.println("Failed! Element not found!");
 				break;
 			case 4:
 				System.out.print("[begin] -> ");
-				for (Integer elem : sortedSet_) {
+				for (String elem : sortedSet_) {
 					System.out.print(elem.toString() + " -> ");
 				}
 				System.out.println("[end]");

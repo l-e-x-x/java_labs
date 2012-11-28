@@ -124,7 +124,7 @@ public class SortedSet <T extends Comparable <T>> implements ISortedSet <T>, Ite
 			int compareResult=searchResultElement.getValue_().compareTo(value);
 			if (compareResult == 0)
 				return searchResultElement; // если элемент найден
-			if (compareResult == -1) // если текущий элемент меньше - направо
+			if (compareResult < 0) // если текущий элемент меньше - направо
 				searchResultElement=searchResultElement.getRightElement_();
 			else  // если текущий элемент больше - налево
 				searchResultElement=searchResultElement.getLeftElement_();
@@ -192,34 +192,34 @@ public class SortedSet <T extends Comparable <T>> implements ISortedSet <T>, Ite
 			{	// выполняем обход
 				prevElement=thisElement;
 				compareResult=thisElement.compareWithParam((T) e);
-				switch (compareResult)
-				{
-				case 1: // если текущий узел больше параметра - идем налево
+				if (compareResult > 0)
+				{	// если текущий узел больше параметра - идем налево
 					thisElement=thisElement.getLeftElement_();
-					break;	
-				case -1: // если текущий узел меньше параметра - идем направо
+				}	
+				if (compareResult < 0)
+				{	// если текущий узел меньше параметра - идем направо
 					thisElement=thisElement.getRightElement_();
-					break;
 				}
 			} while ((thisElement != null)&& // выполняем пока не дойдем до листа
 					 (compareResult != 0));  // (или до узла с таким же значением)
 			
 			SortedSetElement <T> newElement=new SortedSetElement <T>((T)e, prevElement); // создаем новый узел
-			switch (compareResult)
-			{
-			case 0: // если равно - добавляем к списку в узле с таким же значением
+				/*выбираем куда добавить*/
+			if (compareResult == 0)
+			{	// если равно - добавляем к списку в узле с таким же значением
 				thisElement.addToEquals(e);
 				System.out.println("Added " + e.toString() + " to element <" + thisElement.getValue_().toString() + "> equals list");
-				break; 
-			case 1: // если в узле значение больше  - добавляем налево
+			} 
+			if (compareResult > 0)
+			{	// если в узле значение больше  - добавляем налево
 				prevElement.setLeftElement_(newElement);
 				System.out.println("Added " + e.toString() + " to the left of element <" + prevElement.getValue_().toString() + ">");
-				break;
-			case -1: // если в узле значение меньше  - добавляем направо
+			} 
+			if (compareResult < 0)
+			{	// если в узле значение меньше  - добавляем направо
 				prevElement.setRightElement_(newElement);
 				System.out.println("Added " + e.toString() + " to the right of element <" + prevElement.getValue_().toString() + ">");
-				break;			
-			} // end switch
+			} 
 		}	// end else (root != null)
 	}
 
