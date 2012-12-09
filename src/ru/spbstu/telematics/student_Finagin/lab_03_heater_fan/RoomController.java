@@ -8,20 +8,33 @@ import javax.swing.*;
    
 public class RoomController implements Runnable
 {
+		/*Сущности*/
+		// обогреватель
+	private Heater heater_;
+		// температурный датчик
+	private TemperatureSensor tSensor_;
+		// потоки
 	private Thread heaterT_;
 	private Thread tsensorT_;
-	private Heater heater_;
-	private TemperatureSensor tSensor_;
-	private boolean heaterNeeded_=false;
+		
+	/*Состояние комнаты*/
+		// текущая температура
 	private float temperature_;
-	float initialAbsWetness_;
-	
+		// начальная абсолютная влажность (постоянна всегда)
+	final float initialAbsWetness_=new Random().nextInt(150)+50; // 50-200
+		// предпочитаемая температура
 	private float temperatureSetting_;
+	
+	
+		// блокировки и условия
 	private ReentrantLock settingsLock_;
 	private ReentrantLock airStateLock_;
 	private Condition actionNeededCondition_;
-	
-	private StateMonFrame stateMonFrame_ = new StateMonFrame();	
+		// флаг необходимости включить обогреватель
+	private boolean heaterNeeded_=false;
+
+	// фрейм монитора
+	private StateMonitorFrame stateMonitor_;	
 	Scanner settingsScanner_ = new Scanner(System.in);
 	
 	public RoomController() 
@@ -29,16 +42,13 @@ public class RoomController implements Runnable
 		settingsLock_ = new ReentrantLock();
 		airStateLock_ = new ReentrantLock();
 		actionNeededCondition_ = airStateLock_.newCondition();
-		
+		stateMonitor_ = new StateMonitorFrame();
 		temperature_=new Random().nextInt(20)+10; 		 // 10-30
-		initialAbsWetness_=new Random().nextInt(150)+50; // 50-200
 		temperatureSetting_=temperature_;
 		
-		stateMonFrame_.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		stateMonFrame_.setVisible(true);
 		
-		heater_= new Heater();
-		tSensor_ = new TemperatureSensor();
+		heater_= new Heater(this);
+		tSensor_ = new TemperatureSensor(this, stateMonitor_);
 		heaterT_= new Thread(heater_);
 		tsensorT_ = new Thread(tSensor_);
 	}
@@ -49,91 +59,7 @@ public class RoomController implements Runnable
 		tsensorT_.start();
 	}
 	
-	private class StateMonFrame extends JFrame
-	{
-		public StateMonFrame()
-		{
-			setTitle("Room State Monitor");
-			setSize(500, 200);
-			setLayout(null);
-			temperatureLabel_.setBounds(0, 0, 130, 20);
-			temperatureSettingLabel_.setBounds(140, 0, 200, 20);
-			wetnessLabel_.setBounds(0, 20, 130, 20);
-			heaterOnLabel_.setBounds(0, 20, 70, 20);
-			heaterOnLabel_.setText("Heater ON");
-			heaterOnLabel_.setVisible(false);
-			fanOnLabel_.setBounds(75, 20, 50, 20);
-			fanOnLabel_.setText("Fan ON");
-			fanOnLabel_.setVisible(false);
-			add(temperatureLabel_);
-			add(temperatureSettingLabel_);
-			add(wetnessLabel_);
-			add(heaterOnLabel_);
-			add(fanOnLabel_);
-		}
-		public JLabel temperatureLabel_ = new JLabel();
-		public JLabel wetnessLabel_ = new JLabel();
-		public JLabel heaterOnLabel_ = new JLabel();
-		public JLabel fanOnLabel_ = new JLabel();
-		public JLabel temperatureSettingLabel_ = new JLabel();
-		
-	}
-	
-	
-	private class TemperatureSensor implements Runnable
-	{
-		@Override
-		public void run()
-		{			
-			Float temperature;
-			Float temperatureSetting;
-			Float temperatureSettingPercent;
-			while (true)
-			{
-				temperature=RoomController.this.temperatureSensorAction();
-				temperatureSetting=RoomController.this.readSettings();
-				temperatureSettingPercent=temperatureSetting/100;
-				RoomController.this.stateMonFrame_.temperatureLabel_.setText("Temperature: "+temperature.toString());
-				RoomController.this.stateMonFrame_.temperatureSettingLabel_.setText("Temperature Set: "+temperatureSetting.toString());
-				if (temperature < temperatureSetting-temperatureSettingPercent)
-				{
-					RoomController.this.stateMonFrame_.heaterOnLabel_.setVisible(true);
-					RoomController.this.heaterOn();
-				}
-				else
-				{
-					RoomController.this.stateMonFrame_.heaterOnLabel_.setVisible(false);
-					RoomController.this.heaterOff();
-				}	
-				try {
-					Thread.sleep(500);
-				} catch (InterruptedException e)
-					{e.printStackTrace();}
-			}
-		}
-	}
-	
-
-	private class Heater implements Runnable
-	{
-		@Override
-		public void run() 
-		{
-			while (true)
-			{	
-				try 
-				{
-					RoomController.this.heaterAction();
-					Thread.sleep(500);
-				} 
-				catch (InterruptedException e) 
-					{e.printStackTrace();}
-			} // endWhile		
-		}
-	}
-
-	
-	private void heaterAction() throws InterruptedException
+	public void heaterAction() throws InterruptedException
 	{
 		airStateLock_.lock();
 		try
@@ -151,7 +77,7 @@ public class RoomController implements Runnable
 			{airStateLock_.unlock();}
 	}
 	
-	private float temperatureSensorAction()
+	public float temperatureSensorAction()
 	{
 		airStateLock_.lock();
 		try
@@ -160,7 +86,7 @@ public class RoomController implements Runnable
 			{airStateLock_.unlock();}
 	}
 	
-	private void heaterOn()
+	public void heaterTurnOn()
 	{
 		if (!heaterNeeded_)
 		{
@@ -175,9 +101,10 @@ public class RoomController implements Runnable
 		}
 	}
 	
-	private void heaterOff()
+	public void heaterTurnOff()
 	{
-		heaterNeeded_=false;
+		if (heaterNeeded_)
+			heaterNeeded_=false;
 	}
 	
 	private void changeSettings(float newTempSet)
@@ -189,7 +116,7 @@ public class RoomController implements Runnable
 			{settingsLock_.unlock();}
 	}
 	
-	private float readSettings()
+	public float getCurrentSettings()
 	{
 		settingsLock_.lock();
 		try
