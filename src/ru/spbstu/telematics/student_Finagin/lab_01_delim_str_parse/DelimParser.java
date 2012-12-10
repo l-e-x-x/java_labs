@@ -1,3 +1,5 @@
+package ru.spbstu.telematics.student_Finagin.lab_01_delim_str_parse;
+
 import java.util.Scanner;
 import java.util.Vector;
 public class DelimParser
