@@ -19,7 +19,9 @@ public class WetnessSensor implements Runnable
 	{			
 		while (true)
 		{
+				// снимаем показатели
 			currentWetness_=roomCntrl_.wetnessSensorAction();
+				// читаем настройки для влажности
 			currentWetnessSetting_=roomCntrl_.getCurrentWetnessSettings();
 			currentWetnessSettingPercent_=currentWetnessSetting_/100;
 			roomStateMon_.wetnessLabel_.setText("Wetness: "+Main.customFormat(currentWetness_)+"%");
@@ -28,15 +30,17 @@ public class WetnessSensor implements Runnable
 														"±"+
 														Main.customFormat(currentWetnessSettingPercent_)+
 														"%");
-			if (currentWetness_ > currentWetnessSetting_+currentWetnessSettingPercent_)
-				roomCntrl_.heaterTurnOn(false ,true);
+			if (currentWetness_ > // если влажность больше чем заданная (на 1%)
+				currentWetnessSetting_+currentWetnessSettingPercent_)
+				roomCntrl_.heaterTurnOn(false ,true); // тогда включаем обогрев
 			else
-				roomCntrl_.heaterTurnOff(false ,true);
+				roomCntrl_.heaterTurnOff(false ,true); // иначе - выключаем
 			
-			if (currentWetness_ < currentWetnessSetting_-currentWetnessSettingPercent_)
-				roomCntrl_.fanTurnOn(false ,true);
+			if (currentWetness_ < // если влажность меньше чем заданная (на 1%)
+				currentWetnessSetting_-currentWetnessSettingPercent_)
+				roomCntrl_.fanTurnOn(false ,true); // тогда включаем охлаждение
 			else
-				roomCntrl_.fanTurnOff(false ,true);
+				roomCntrl_.fanTurnOff(false ,true); // иначе - выключаем
 			
 			try {
 				Thread.sleep(500);

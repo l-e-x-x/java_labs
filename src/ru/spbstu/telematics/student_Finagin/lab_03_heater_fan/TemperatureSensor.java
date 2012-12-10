@@ -20,7 +20,9 @@ public class TemperatureSensor implements Runnable
 	{			
 		while (true)
 		{
+				// снимаем показатели
 			currentTemperature_=roomCntrl_.temperatureSensorAction();
+				// читаем настройки для температуры
 			currenttemperatureSetting_=roomCntrl_.getCurrentTemperatureSettings();
 			currentTemperatureSettingPercent_=currenttemperatureSetting_/100;
 			roomStateMon_.temperatureLabel_.setText("Temperature: "+Main.customFormat(currentTemperature_));
@@ -29,18 +31,21 @@ public class TemperatureSensor implements Runnable
 															"±"+
 															Main.customFormat(currentTemperatureSettingPercent_)+
 															"°C");
-			if (currentTemperature_ < currenttemperatureSetting_-currentTemperatureSettingPercent_)
-				roomCntrl_.heaterTurnOn(true, false);
-			else
-				roomCntrl_.heaterTurnOff(true, false);
 			
-			if (currentTemperature_ > currenttemperatureSetting_+currentTemperatureSettingPercent_)
-				roomCntrl_.fanTurnOn(true, false);
+			if (currentTemperature_ < 	// если температура меньше чем заданная (на 1%) 
+				currenttemperatureSetting_-currentTemperatureSettingPercent_)
+				roomCntrl_.heaterTurnOn(true, false); // тогда включаем обогрев
 			else
-				roomCntrl_.fanTurnOff(true, false);
+				roomCntrl_.heaterTurnOff(true, false);	// иначе - выключаем
+			
+			if (currentTemperature_ > // если температура больше чем заданная (на 1%) 
+				currenttemperatureSetting_+currentTemperatureSettingPercent_)
+				roomCntrl_.fanTurnOn(true, false);	// тогда включаем охлаждение
+			else
+				roomCntrl_.fanTurnOff(true, false); // иначе - выключаем
 			
 			try {
-				Thread.sleep(500);
+				Thread.sleep(500);	
 			} catch (InterruptedException e)
 				{e.printStackTrace();}
 		}

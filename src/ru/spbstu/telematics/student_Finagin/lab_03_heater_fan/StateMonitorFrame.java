@@ -32,12 +32,14 @@ public class StateMonitorFrame extends JFrame
 	
 	public StateMonitorFrame(RoomController roomCtrl)
 	{
-		setTitle("Room State Monitor");
+		roomCntrl_=roomCtrl;
+		setTitle("Room #"+ roomCntrl_.roomNumber_+ " State Monitor");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setVisible(true);
+		setResizable(false);
 		setSize(400, 200);
 		setLayout(null);
-		roomCntrl_=roomCtrl;
+		
 		settingsHeaderLabel_.setBounds(150, 75, 100, 20);
 		settingsHeaderLabel_.setText("..::SETTINGS::..");
 		temperatureLabel_.setBounds(50, 10, 130, 20);
