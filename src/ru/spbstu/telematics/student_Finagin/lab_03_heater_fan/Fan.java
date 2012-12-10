@@ -1,9 +1,9 @@
 package ru.spbstu.telematics.student_Finagin.lab_03_heater_fan;
 
-public class Heater implements Runnable
+public class Fan implements Runnable
 {
 	private RoomController roomCntrl_;
-	public Heater(RoomController roomCtrl) 
+	public Fan(RoomController roomCtrl) 
 		{roomCntrl_=roomCtrl;}
 	
 	@Override
@@ -13,7 +13,7 @@ public class Heater implements Runnable
 		{	
 			try 
 			{
-				roomCntrl_.heaterAction();
+				roomCntrl_.fanAction();
 				Thread.sleep(100);
 			} 
 			catch (InterruptedException e) 
