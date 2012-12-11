@@ -6,15 +6,10 @@ import java.net.Socket;
 
 public class ListenServer 
 {
-	public ChatServerController serverController_= new ChatServerController();
+	public static ChatServerController serverController_= new ChatServerController();
 	
 	public static void main(String[] args) throws IOException 
 	{
-		ServerSocket server = new ServerSocket(3000);
-		while (!Thread.currentThread().isInterrupted()) 
-		{
-			Socket client = server.accept();
-			new Thread(new ClientHandler(client)).start();
-		}
+		(new Thread(serverController_)).start();
 	}
 }
