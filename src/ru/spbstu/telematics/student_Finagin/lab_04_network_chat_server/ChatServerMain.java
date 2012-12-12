@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class ListenServer 
+public class ChatServerMain 
 {
 	public static ChatServerController serverController_= new ChatServerController();
 	
 	public static void main(String[] args) throws IOException 
-	{
-		(new Thread(serverController_)).start();
-	}
+		{(new Thread(serverController_)).start();}
 }
