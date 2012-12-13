@@ -16,7 +16,7 @@ public class ChatClient implements Runnable
 		/*Соединение*/
 	private Socket clientSocket_;
 	private int serverPort_ = 3000;
-		
+	
 		/*Потоки для чтения/записи*/
 	private InputStream clientInputStream_ = null;
 	private ObjectInputStream clientObjInputStream_ = null;
@@ -25,22 +25,20 @@ public class ChatClient implements Runnable
 
 		// гуй клиента
 	private ClientGUI clientGUI_;
+	private ChatClientMain main_; 
 	
 	public ChatClient()
 	{
-		if (initClient())
-		{
-			clientGUI_=new ClientGUI(this);
-			clientGUI_.registrationFrame_.initRegistrationLayout();
-			try	// инициализируем поток чтения
-				{initInputStreams();}
-			catch (IOException e1)
-				{e1.printStackTrace();}
-		}
+			// инициализируем гуй
+		clientGUI_=new ClientGUI(this);
+			// инициализируем форму коннекта 
+		clientGUI_.connectionFrame_.initConnectionLayout();
+			// запускаем основной рабочий поток
+		new Thread(this).start();
 	}
 	
-	private void setUpConnection() throws UnknownHostException, IOException, ConnectException
-		{clientSocket_ = new Socket("localhost", serverPort_);}
+	private void setUpConnection(String serverAddress) throws UnknownHostException, IOException, ConnectException
+		{clientSocket_ = new Socket(serverAddress, serverPort_);}
 	
 	private void initOutputStreams() throws IOException
 	{	// инициализируем выходные потоки для записи
@@ -54,14 +52,14 @@ public class ChatClient implements Runnable
 		clientObjInputStream_ = new ObjectInputStream(clientInputStream_);
 	}
 	
-	private boolean initClient()
+	public boolean clientConnectionInit(String serverAddress)
 	{
 		try	// инициализируем соединение
-			{setUpConnection();}
+			{setUpConnection(serverAddress);}
 		catch (UnknownHostException unknownHostEx)
-			{System.out.println("Unknown host"); return false;}
+			{clientGUI_.connectionFrame_.connectFailMsg_="Could't connect: unknown host!"; return false;}
 		catch (ConnectException connectEx) 
-			{System.out.println("Server not responding!"); return false;}
+			{clientGUI_.connectionFrame_.connectFailMsg_="Could't connect: server not responding!"; return false;}
 		catch (IOException e1)
 			{e1.printStackTrace();}
 		try	// инициализируем поток для записи
@@ -101,8 +99,10 @@ public class ChatClient implements Runnable
 			{e.printStackTrace();}
 	}
 	
-	public void recieveMessages()
+	public void mainChatProcess()
 	{
+		clientGUI_.registrationFrame_.dispose();
+		clientGUI_.mainChatFrame_.initMainChatLayout();	
 		String inMessage = new String();
 		while(true)
 		{
@@ -119,9 +119,32 @@ public class ChatClient implements Runnable
 			clientGUI_.mainChatFrame_.mainChatMessagesArea_.insert(inMessage+"\n\n", 0);
 		}
 	}
+	
+	public synchronized void notifyMainThread()
+		{notifyAll();}
 
 	@Override
-	public void run()
-		{recieveMessages();}
+	public synchronized void run()
+	{
+		try	// ждем удачного коннекта клиента
+			{wait();} 
+		catch (InterruptedException e)
+			{e.printStackTrace();}
+		
+			// если клиент коннектнулся нормально - рушим форму коннекта 
+		clientGUI_.connectionFrame_.dispose();
+		clientGUI_.registrationFrame_.initRegistrationLayout(); // выдаем форму реги
+		
+		try	// инициализируем поток чтения
+			{initInputStreams();}
+		catch (IOException e1)
+			{e1.printStackTrace();}	
+		try	// ждем успешного завершения реги
+			{wait();} 
+		catch (InterruptedException e)
+			{e.printStackTrace();}
+		// ok - открываем окно чата 
+		mainChatProcess();	
+	}
 	
 }

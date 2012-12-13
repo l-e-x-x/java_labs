@@ -29,14 +29,20 @@ public class ChatServerController implements Runnable
 	private ArrayList <ReadyToSendMessage> readyToSendMessages_;
 		// блокировка для доступа к списку readyToSendMessages
 	private ReentrantLock readyToSendMessagesLock_;
-
+		// список всех сообщений
+	private ArrayList<String> allMessagesList_;
+		// блокировка для доступа к списку всех сообщений
+	private ReentrantLock allMessagesListLock_;
 	
 	public ChatServerController()
 	{
 		readyToSendMessagesLock_ = new ReentrantLock();
 		readyToSendMessages_ = new ArrayList<ReadyToSendMessage>();
+		allMessagesList_ = new ArrayList<String>();
+		allMessagesListLock_ = new ReentrantLock();
 		regClientsNicknames_ = new ArrayList<String>();
 		clientNicknamesLock_ = new ReentrantLock();
+		
 		registeredClientsCounterLock_ = new ReentrantLock();
 		try
 			{clientsAccepterSocket_ = new ServerSocket(3000);} 
@@ -59,7 +65,7 @@ public class ChatServerController implements Runnable
 		ReadyToSendMessage newMsgToSend = null;
 		readyToSendMessagesLock_.lock();
 		try
-		{	// если список не заблочен - пытаемся получить
+		{	// если список не заблочен - пытаемся получить сообщение
 			if (!readyToSendMessages_.isEmpty())
 			{	// если список не пуст - выбираем сообщение
 				if (!readyToSendMessages_.get(0).hasBeenSendedBy(handlerId))	
@@ -67,8 +73,7 @@ public class ChatServerController implements Runnable
 					newMsgToSend=readyToSendMessages_.get(0); 			 // берем первое сообщение в списке
 					readyToSendMessages_.get(0).addNewSender(handlerId); // добавляем отправителя handlerId
 				}
-				if (readyToSendMessages_.get(0).getNumOfSenders() == getRegisteredClientsCount())
-					readyToSendMessages_.remove(0); // если все обслуживающие потоки-отправители забрали сообщение - удаляем
+				tryToRemoveFromReadyToSendMsgList(); // пытаемся удалить сообщение из рассылки
 			}
 		}
 		finally	// снимаем блокировку
@@ -88,6 +93,47 @@ public class ChatServerController implements Runnable
 			{readyToSendMessagesLock_.unlock();}
 	}
 
+	public void tryToRemoveFromReadyToSendMsgList()
+	{	// удаление сообщения из общей рассылки
+		readyToSendMessagesLock_.lock();
+		try
+		{	// если список не заблочен - пытаемся получить количество отправителей сообщения
+			if (!readyToSendMessages_.isEmpty())
+			{	// если список не пуст - выбираем сообщение
+				if (readyToSendMessages_.get(0).getNumOfSenders() == getRegisteredClientsCount())
+				{	// если все обслуживающие потоки-отправители забрали сообщение - удаляем
+					addMessageToAllMsgList(readyToSendMessages_.get(0).getMessage_());
+					readyToSendMessages_.remove(0); 
+				}
+			}
+		}
+		finally	// снимаем блокировку
+			{readyToSendMessagesLock_.unlock();}
+	}
+	
+	public void addMessageToAllMsgList(String msg)
+	{	// добавление сообщения к общему списку сообщений
+		allMessagesListLock_.lock();
+		try	// пытаемся добавить
+			{allMessagesList_.add(msg);}
+		finally 	// снимаем блокировку
+			{allMessagesListLock_.unlock();}
+	}
+	
+	public ArrayList<String> getLastMessagesFromAllMsgList()
+	{	// запрос списка последних сообщений из общего списка
+		allMessagesListLock_.lock();
+		try	// пытаемся запросить сообщения
+		{
+			if (!allMessagesList_.isEmpty())
+				return (allMessagesList_);
+			return null;
+		}
+		finally 	// снимаем блокировку
+			{allMessagesListLock_.unlock();}
+	}
+	
+	
 	/*Методы для работы с клиентами*/
 	
 	public boolean registerNewClientNickname(String newNick)

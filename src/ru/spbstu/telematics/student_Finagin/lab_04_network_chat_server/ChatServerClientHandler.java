@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.Date;
 
 public class ChatServerClientHandler implements Runnable 
@@ -89,15 +90,17 @@ public class ChatServerClientHandler implements Runnable
 		clientNickName_=nickRegMsg;	// сохраняем ник клиента
 		serverController_.changeRegisteredClientsCountBy(1);  // обновляем счетчик	
 			// добавляем сообщение с приветствием в рассылку
-		ReadyToSendMessage newGreetingsMsg = new ReadyToSendMessage(handlerThreadId_, "[SERVICE] Greetings to "+clientNickName_+"!");
+		ReadyToSendMessage newGreetingsMsg = new ReadyToSendMessage(handlerThreadId_, "[SERVER] Greetings to "+clientNickName_+"!");
 		serverController_.addNewMessageToSend(newGreetingsMsg);
+		sendLastChatMessages(); // отправляем клиенту последние сообщения
+		sendMessage("[SERVER] Welcome to the chat, "+clientNickName_+"! Current chatters count: "+serverController_.getRegisteredClientsCount()); // отправляем сообщение с приветствием клиенту
 		return true;
 	}
 	
 	private void closeConnection()
 	{	// закрытие соединения
 			// добавляем сообщение с прощанием в рассылку
-		ReadyToSendMessage goodByMsg = new ReadyToSendMessage(handlerThreadId_, "[SERVICE] "+ clientNickName_+" has left us!");
+		ReadyToSendMessage goodByMsg = new ReadyToSendMessage(handlerThreadId_, "[SERVER] "+ clientNickName_+" has left us!");
 		serverController_.addNewMessageToSend(goodByMsg);
 			// удаляемся из списка рассылки
 		serverController_.delSenderFromReadyToSendMsgList(handlerThreadId_);
@@ -105,34 +108,55 @@ public class ChatServerClientHandler implements Runnable
 		serverController_.unregisterClientNickname(clientNickName_);
 			// уменьшаем счетчик зарегистрированных клиентов
 		serverController_.changeRegisteredClientsCountBy(-1);
+			// пытаемся удалить последнее сообщение из рассылки
+		serverController_.tryToRemoveFromReadyToSendMsgList();
+	}
+	
+	private boolean sendMessage(String msg) 
+	{
+		try	// пытаемся отправить сообщение клиенту
+			{handlerObjOutputStream_.writeObject(msg);}
+		catch (SocketException sockEx)
+			{return false;} // если соединение прервалось
+		catch (IOException e1)
+			{e1.printStackTrace(); return false;}	
+		return true;
+	}
+	
+	private void sendLastChatMessages()
+	{
+		ArrayList<String> lastMsgList;
+		lastMsgList=serverController_.getLastMessagesFromAllMsgList();
+		if (lastMsgList != null)
+		{
+			for (String msg : lastMsgList)
+				sendMessage(msg);
+		}
 	}
 	
 	private void serveTheClient()
 	{	// обслуживание клиента (прием/отправка сообщений)
 		String inMsg = new String();
 		ReadyToSendMessage msgToSend = null;
-		
 		while (true)
 		{
 				/*Отправка сообщения из общей рассылки чата*/
 			msgToSend = serverController_.getMessageToSend(handlerThreadId_);
 			if (msgToSend != null)
-			{	// если есть сообщение для отправки обслуживаемому клиенту
-				try	// пытаемся отправить			
-					{handlerObjOutputStream_.writeObject(msgToSend.getMessage_());}
-				catch (SocketException sockEx)
-					{return;} // если соединение прерывалось - закрываемся
-				catch (IOException e1)
-					{e1.printStackTrace(); return;}	
+			{	// если есть сообщение из рассылки для отправки обслуживаемому клиенту
+				if (!sendMessage(msgToSend.getMessage_())) // отправляем сообщение
+					return;  // если соединение прервалось - закрываемся
 			}
 			
 				/*Прием сообщения от обслуживаемого клиента*/
 			try	// пытаемся прочитать сообщение от клиента
 				{inMsg = (String) handlerObjInputStream_.readObject();}
-			catch (SocketTimeoutException e)
+			catch (SocketTimeoutException sockTimeoutEx)
 				{continue;}	// если вывалились по таймауту, значит ничего не пришло 
+			catch (SocketException sockEx)
+				{return;} // если соединение прервалось - закрываемся
 			catch (EOFException EOFEx)
-				{return;} // если соединение прерывалось - закрываемся
+				{return;} // если соединение прервалось - закрываемся
 			catch (IOException e)
 				{e.printStackTrace(); return;} 
 			catch (ClassNotFoundException e)
@@ -143,18 +167,13 @@ public class ChatServerClientHandler implements Runnable
 			String compiledMsg = compileMessageToSend(inMsg);
 			ReadyToSendMessage newMsg = new ReadyToSendMessage(handlerThreadId_, compiledMsg);
 			serverController_.addNewMessageToSend(newMsg);
-			
-			try	// пытаемся отправить сообщение обратно клиенту
-				{handlerObjOutputStream_.writeObject(compiledMsg);}
-			catch (SocketException sockEx)
-				{return;} // если соединение прерывалось - закрываемся
-			catch (IOException e)
-				{e.printStackTrace(); return;}	
+			if (!sendMessage(compiledMsg)) // отправляем сообщение обратно клиенту
+				return;  // если соединение прервалось - закрываемся
 		} // endWhile
 	}
 	
 	private String compileMessageToSend(String msg)
-		{return new Date().toString()+"\n"+clientNickName_+" says: "+msg;}
+		{return new Date().toString()+"\n["+clientNickName_+"] says: "+msg;}
 	
 	@Override
 	public void run() 

@@ -11,17 +11,108 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import javax.swing.*;
 
-import sun.misc.Cleaner;
 
 public class ClientGUI
 {
 	private Font font = new Font("Helvetica", Font.PLAIN, 11);
 	private ChatClient chatClient_;
+	
+	public ConnectFrame connectionFrame_ = new ConnectFrame();
 	public RegistrationFrame registrationFrame_ = new RegistrationFrame();
 	public MainChatFrame mainChatFrame_ = new MainChatFrame();
 	
 	public ClientGUI(ChatClient client)
 		{chatClient_=client;}
+	
+	class ConnectFrame extends JFrame
+	{
+		public String connectFailMsg_ = new String();
+		public ConnectFrame()
+		{
+			setTitle("Java Chat Room [disconnected]");
+			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		}
+	
+		private JLabel serverAddressLabel_ = new JLabel();
+		private JTextField serverAddressInput_ = new JTextField();
+		private JButton connectButton_ = new JButton("Connect");
+		private JLabel connectionFailLabel_ = new JLabel();
+		
+		public void initConnectionLayout()
+		{
+			setResizable(false);
+			setBounds(100, 100, 500, 100);
+			setLayout(null);
+			serverAddressLabel_.setBounds(20, 20, 150, 20);
+			serverAddressLabel_.setFont(font);
+			serverAddressLabel_.setText("Enter server address: ");
+			
+			connectionFailLabel_.setBounds(120, 45, 250, 20);
+			connectionFailLabel_.setText("Could not connect to server");
+			connectionFailLabel_.setFont(font);
+			connectionFailLabel_.setForeground(Color.RED);
+			connectionFailLabel_.setVisible(false);
+			
+			serverAddressInput_.setBounds(150, 20, 200, 20);
+			serverAddressInput_.setFont(font);
+			serverAddressInput_.setText("localhost");
+			serverAddressInput_.setToolTipText("Enter address here");
+			serverAddressInput_.addKeyListener(new KeyboardEventAdapter());
+			
+			connectButton_.setBounds(370, 20, 100, 20);
+			connectButton_.setFont(font);
+			connectButton_.addActionListener(new ButtonEventListener());
+					
+			add(serverAddressLabel_);
+			add(connectionFailLabel_);
+			add(serverAddressInput_);
+			add(connectButton_);
+			setVisible(true);
+		}
+		
+		private void connectAttempt()
+		{
+			String serverAddress=serverAddressInput_.getText();
+			if (serverAddress.isEmpty())
+				 serverAddressInput_.setBackground(Color.RED);
+			else
+			{
+				serverAddressInput_.setBackground(Color.WHITE);
+				String failMsg=new String("");
+				if (!chatClient_.clientConnectionInit(serverAddressInput_.getText()))
+				{	// если коннект не удался - выставляем мессагу
+					connectionFailLabel_.setText(connectFailMsg_);
+					connectionFailLabel_.setVisible(true);
+					frameFailAction(this);	// шатаем форму
+				}
+				else
+					chatClient_.notifyMainThread(); // Если все ok - пробуждаем основной поток
+			} // endElse
+		}
+		
+		private class ButtonEventListener implements ActionListener 
+		{
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{	// обработчик нажатия кнопок
+				if (e.getSource() == connectButton_)
+					connectAttempt();	
+			}
+		}
+		
+		private class KeyboardEventAdapter extends KeyAdapter
+		{
+			public void keyPressed(KeyEvent event)
+			{
+				if (event.getKeyCode() == event.VK_ENTER)
+					connectAttempt();
+			}	
+		}
+		
+		public void setConnectionFailMsg(String failMsg)
+			{connectionFailLabel_.setText(failMsg);}
+		
+	}
 	
 	class RegistrationFrame extends JFrame
 	{
@@ -67,34 +158,6 @@ public class ClientGUI
 			setVisible(true);
 		}
 		
-		private void registerFailAction()
-		{	// я твой окно шатал xD
-			registrationFailLabel_.setVisible(true);
-			Point startPosition=getLocationOnScreen();
-			int yPosition=startPosition.y;
-			int amplitude=25;
-			while (amplitude > 0)
-			{
-				while (getLocationOnScreen().x < startPosition.x+amplitude)
-				{
-					setLocation(getLocationOnScreen().x+5, yPosition);
-					try
-						{Thread.sleep(8);}
-					catch (InterruptedException e)
-						{e.printStackTrace();}
-				}
-				while (getLocationOnScreen().x > startPosition.x-amplitude)
-				{
-					setLocation(getLocationOnScreen().x-5, yPosition);
-					try
-						{Thread.sleep(8);}
-					catch (InterruptedException e)
-						{e.printStackTrace();}
-				}
-				amplitude-=5;
-			}
-		}
-		
 		private void registerAttempt()
 		{
 			String nickname=registrationNicknameInput_.getText();
@@ -102,14 +165,14 @@ public class ClientGUI
 				 registrationNicknameInput_.setBackground(Color.RED);
 			else
 			{
+				registrationNicknameInput_.setBackground(Color.WHITE);
 				if (!chatClient_.registerInChat(nickname))
-					registerFailAction();	// шатаем форму, если неуспешна рега
-				else
-				{	// Если все ok - рушим форму и открываем окно чата и создаем поток для чтения 
-					ClientGUI.this.registrationFrame_.dispose();
-					ClientGUI.this.mainChatFrame_.initMainChatLayout();
-					new Thread(chatClient_).start();
+				{
+					registrationFailLabel_.setVisible(true);
+					frameFailAction(this);	// шатаем форму, если неуспешна рега
 				}
+				else
+					chatClient_.notifyMainThread(); // Если все ok - пробуждаем основной поток
 			} // endElse
 		}
 		
@@ -140,14 +203,14 @@ public class ClientGUI
 		
 		public MainChatFrame()
 		{
-			setTitle("Java Chat Room");
+			setTitle("Java Chat Room [connected]");
 			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		}
 		
 		public void initMainChatLayout()
 		{
 			setResizable(true);
-			setBounds(100, 100, 800, 600);
+			setBounds(100, 100, 600, 300);
 			setLayout(new GridLayout(2, 1));
 		
 			mainChatMessagesArea_.setBorder(BorderFactory.createBevelBorder(0));
@@ -156,7 +219,7 @@ public class ClientGUI
 			mainChatOutMessageArea_ = new JTextArea();
 			mainChatOutMessageArea_.addKeyListener(new KeyboardEventAdapter());
 			mainChatOutMessageArea_.setBorder(BorderFactory.createBevelBorder(0));
-			
+			mainChatOutMessageArea_.setToolTipText("Send message: [Enter]; New line: [Ctrl]+[Enter]");
 			add (mainChatOutMessageArea_);
 			add (mainChatMessagesArea_);
 				
@@ -182,14 +245,46 @@ public class ClientGUI
 						mainChatOutMessageArea_.append("\n");
 					else
 					{
-						chatClient_.sendMessage(mainChatOutMessageArea_.getText());
-						mainChatOutMessageArea_.setText("");
+						if (!mainChatOutMessageArea_.getText().isEmpty())
+						{
+							chatClient_.sendMessage(mainChatOutMessageArea_.getText());
+							mainChatOutMessageArea_.setText("");
+						}
 					}
 					event.consume();
 				}
 			}	
 		}
 	}	// MainChatFrameEnd
+	
+	private void frameFailAction(JFrame frame)
+	{	// я твой окно шатал xD
+		
+		Point startPosition=frame.getLocationOnScreen();
+		int yPosition=startPosition.y;
+		int amplitude=25;
+		while (amplitude > 0)
+		{
+			while (frame.getLocationOnScreen().x < startPosition.x+amplitude)
+			{
+				frame.setLocation(frame.getLocationOnScreen().x+5, yPosition);
+				try
+					{Thread.sleep(8);}
+				catch (InterruptedException e)
+					{e.printStackTrace();}
+			}
+			while (frame.getLocationOnScreen().x > startPosition.x-amplitude)
+			{
+				frame.setLocation(frame.getLocationOnScreen().x-5, yPosition);
+				try
+					{Thread.sleep(8);}
+				catch (InterruptedException e)
+					{e.printStackTrace();}
+			}
+			amplitude-=5;
+		}
+	}
+	
 	
 }
 
