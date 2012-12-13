@@ -33,6 +33,8 @@ public class ChatServerController implements Runnable
 	private ArrayList<String> allMessagesList_;
 		// блокировка для доступа к списку всех сообщений
 	private ReentrantLock allMessagesListLock_;
+		// лимит числа последних сообщений (из списка allMessages)
+	final private int lastMessagesCountLimit_=100;
 	
 	public ChatServerController()
 	{
@@ -115,7 +117,11 @@ public class ChatServerController implements Runnable
 	{	// добавление сообщения к общему списку сообщений
 		allMessagesListLock_.lock();
 		try	// пытаемся добавить
-			{allMessagesList_.add(msg);}
+		{
+			allMessagesList_.add(msg);
+			if (allMessagesList_.size() > lastMessagesCountLimit_)
+				allMessagesList_.remove(0); // удаляем, если превышен лимит
+		}
 		finally 	// снимаем блокировку
 			{allMessagesListLock_.unlock();}
 	}

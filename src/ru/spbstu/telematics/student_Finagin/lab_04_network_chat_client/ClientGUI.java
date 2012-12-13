@@ -26,10 +26,12 @@ public class ClientGUI
 	
 	class ConnectFrame extends JFrame
 	{
-		public String connectFailMsg_ = new String();
 		public ConnectFrame()
 		{
-			setTitle("Java Chat Room [disconnected]");
+			setResizable(false);
+			setBounds(100, 100, 500, 100);
+			setLayout(null);
+			setTitle("Java Chat Room by [LeXX] .:disconnected:.");
 			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		}
 	
@@ -37,12 +39,10 @@ public class ClientGUI
 		private JTextField serverAddressInput_ = new JTextField();
 		private JButton connectButton_ = new JButton("Connect");
 		private JLabel connectionFailLabel_ = new JLabel();
+		public String connectFailMsg_ = new String();
 		
 		public void initConnectionLayout()
 		{
-			setResizable(false);
-			setBounds(100, 100, 500, 100);
-			setLayout(null);
 			serverAddressLabel_.setBounds(20, 20, 150, 20);
 			serverAddressLabel_.setFont(font);
 			serverAddressLabel_.setText("Enter server address: ");
@@ -78,7 +78,6 @@ public class ClientGUI
 			else
 			{
 				serverAddressInput_.setBackground(Color.WHITE);
-				String failMsg=new String("");
 				if (!chatClient_.clientConnectionInit(serverAddressInput_.getText()))
 				{	// если коннект не удался - выставляем мессагу
 					connectionFailLabel_.setText(connectFailMsg_);
@@ -118,7 +117,10 @@ public class ClientGUI
 	{
 		public RegistrationFrame()
 		{
-			setTitle("Java Chat Room [registration]");
+			setResizable(false);
+			setBounds(100, 100, 500, 100);
+			setLayout(null);
+			setTitle("Java Chat Room by [LeXX] .:registration:.");
 			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		}
 	
@@ -126,18 +128,15 @@ public class ClientGUI
 		private JLabel registrationFailLabel_ = new JLabel();
 		private JTextField registrationNicknameInput_ = new JTextField();
 		private JButton registrationOkButton_ = new JButton("Ok");
+		public String registrationFailMsg_ = new String();
 		
 		public void initRegistrationLayout()
 		{
-			setResizable(false);
-			setBounds(100, 100, 500, 100);
-			setLayout(null);
 			registrationInvitationLabel_.setBounds(40, 20, 150, 20);
 			registrationInvitationLabel_.setFont(font);
 			registrationInvitationLabel_.setText("Enter your Nickname: ");
 			
 			registrationFailLabel_.setBounds(170, 45, 200, 20);
-			registrationFailLabel_.setText("This nick is in use");
 			registrationFailLabel_.setFont(font);
 			registrationFailLabel_.setForeground(Color.RED);
 			registrationFailLabel_.setVisible(false);
@@ -168,6 +167,7 @@ public class ClientGUI
 				registrationNicknameInput_.setBackground(Color.WHITE);
 				if (!chatClient_.registerInChat(nickname))
 				{
+					registrationFailLabel_.setText(registrationFailMsg_);
 					registrationFailLabel_.setVisible(true);
 					frameFailAction(this);	// шатаем форму, если неуспешна рега
 				}
@@ -203,16 +203,16 @@ public class ClientGUI
 		
 		public MainChatFrame()
 		{
-			setTitle("Java Chat Room [connected]");
+			setResizable(true);
+			setBounds(100, 100, 600, 300);
+			setLayout(new GridLayout(2, 1));
 			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		}
 		
 		public void initMainChatLayout()
 		{
-			setResizable(true);
-			setBounds(100, 100, 600, 300);
-			setLayout(new GridLayout(2, 1));
-		
+			setTitle("Java Chat Room by [LeXX] .:connected as "+chatClient_.nickName_+":.");
+			
 			mainChatMessagesArea_.setBorder(BorderFactory.createBevelBorder(0));
 			mainChatMessagesArea_.setEditable(false);
 			

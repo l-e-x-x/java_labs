@@ -1,5 +1,6 @@
 package ru.spbstu.telematics.student_Finagin.lab_04_network_chat_client;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -25,7 +26,10 @@ public class ChatClient implements Runnable
 
 		// гуй клиента
 	private ClientGUI clientGUI_;
-	private ChatClientMain main_; 
+	private ChatClientMain main_;
+	final private String connectionLostMsg_=new String("Connection has been lost!"); 
+		// никнейм
+	public String nickName_; 
 	
 	public ChatClient()
 	{
@@ -59,7 +63,7 @@ public class ChatClient implements Runnable
 		catch (UnknownHostException unknownHostEx)
 			{clientGUI_.connectionFrame_.connectFailMsg_="Could't connect: unknown host!"; return false;}
 		catch (ConnectException connectEx) 
-			{clientGUI_.connectionFrame_.connectFailMsg_="Could't connect: server not responding!"; return false;}
+			{clientGUI_.connectionFrame_.connectFailMsg_="Could't connect: server is not responding!"; return false;}
 		catch (IOException e1)
 			{e1.printStackTrace();}
 		try	// инициализируем поток для записи
@@ -71,15 +75,25 @@ public class ChatClient implements Runnable
 	
 	public boolean registerInChat(String nickname)
 	{
-		try	// пытаемся отправить свой ник на регу
-			{clientObjOutputStream_.writeObject(nickname);}
-		catch (IOException e)
-			{e.printStackTrace(); return false;}
+		// пытаемся отправить свой ник на регу
+		if (!sendMessage(nickname))
+		{	// если соединение прервалось - закрываемся	
+			clientGUI_.registrationFrame_.registrationFailMsg_=connectionLostMsg_;
+			return false;
+		}
 		Integer nickRegMsg = new Integer(0);
 		try	// пытаемся прочитать ответ от сервера
 			{nickRegMsg = (Integer) clientObjInputStream_.readObject();}
+		catch (EOFException EOFEx)
+		{	// если соединение прервалось - закрываемся	
+			clientGUI_.registrationFrame_.registrationFailMsg_=connectionLostMsg_;
+			return false;
+		}
 		catch (SocketException sockEx)
-			{return false;} // если соединение прервалось - закрываемся
+		{	// если соединение прервалось - закрываемся	
+			clientGUI_.registrationFrame_.registrationFailMsg_=connectionLostMsg_;
+			return false;
+		}
 		catch (IOException e)
 			{e.printStackTrace(); return false;} 
 		catch (ClassNotFoundException e)
@@ -87,22 +101,27 @@ public class ChatClient implements Runnable
 	
 		/*проверяем результат реги*/
 		if (nickRegMsg == 0)
-			return false; // если неудача - возвращаемся обратно
+		{	// если неудача (ник уже заюзан) - возвращаемся обратно
+			clientGUI_.registrationFrame_.registrationFailMsg_="This nick is in use!";
+			return false;
+		}
+		nickName_=nickname; // если ок - запоминаем ник
 		return true;
 	}
 	
-	public void sendMessage(String message)
+	public boolean sendMessage(String message)
 	{
-		try	// пытаемся отправить свой ник на регу
+		try	// пытаемся отправить сообщение
 			{clientObjOutputStream_.writeObject(message);}
+		catch (SocketException sockEx)
+			{return false;}	// если соединение прервалось	
 		catch (IOException e)
 			{e.printStackTrace();}
+		return true;
 	}
 	
 	public void mainChatProcess()
 	{
-		clientGUI_.registrationFrame_.dispose();
-		clientGUI_.mainChatFrame_.initMainChatLayout();	
 		String inMessage = new String();
 		while(true)
 		{
@@ -110,6 +129,8 @@ public class ChatClient implements Runnable
 				{inMessage = (String) clientObjInputStream_.readObject();}
 			catch (SocketTimeoutException e)
 				{continue;}	// если вывалились по таймауту, значит ничего не пришло 
+			catch (EOFException EOFEx)
+				{break;} // если соединение прервалось - закрываемся
 			catch (SocketException sockEx)
 				{break;} // если соединение прервалось - закрываемся
 			catch (IOException e)
@@ -143,8 +164,12 @@ public class ChatClient implements Runnable
 			{wait();} 
 		catch (InterruptedException e)
 			{e.printStackTrace();}
-		// ok - открываем окно чата 
-		mainChatProcess();	
+		
+		// если все ok - рушим форму реги и открываем окно чата (стартуем чат)
+		clientGUI_.registrationFrame_.dispose();
+		clientGUI_.mainChatFrame_.initMainChatLayout();	
+		mainChatProcess();
+		clientGUI_.mainChatFrame_.mainChatMessagesArea_.insert("[ERROR] Connection to server has been lost! Reconnect, please!\n\n", 0);;
 	}
 	
 }
